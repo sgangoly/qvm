@@ -5,6 +5,10 @@
 (in-package #:qvm)
 
 ;;;; Transition of the QVM state as a QAM.
+;;;
+;;; Some of these TRANSITION methods specialize on
+;;; CLASSICAL-MEMORY-MIXIN, if there's no need to have quantum bits
+;;; participate.
 
 (define-condition invalid-instruction-encountered (error)
   ((instruction :initarg :instruction
@@ -48,20 +52,21 @@ Return two values:
 (defmethod transition (qvm (instr quil:unresolved-application))
   (error 'invalid-instruction-encountered
          :instruction instr
-         :because (format nil "the operator ~A is not known" (quil::operator-description-root-name
-                                                              (quil:application-operator instr)))))
+         :because (format nil "the operator ~A is not known"
+                          (quil::operator-description-root-name
+                           (quil:application-operator instr)))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:no-operation))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:no-operation))
   (declare (ignore instr))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:pragma))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:pragma))
   ;; Ignore the pragma. Warn only when we want verbose output.
   (when *transition-verbose*
     (warn "Ignoring PRAGMA: ~A" instr))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:halt))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:halt))
   (declare (ignore instr))
   (values qvm nil))
 
@@ -87,7 +92,7 @@ Return two values:
                     (nat-tuple q)))
       (values measured-qvm (1+ (pc measured-qvm))))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:wait))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:wait))
   (declare (ignore instr))
   (when *transition-verbose*
     (warn "WAIT executed. Nothing to wait on."))
@@ -95,16 +100,16 @@ Return two values:
 
 ;;;;;;;;;;;;;;;;;;;; JUMP, JUMP-WHEN, JUMP-UNLESS ;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:unconditional-jump))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:unconditional-jump))
   (values qvm (quil:jump-label instr)))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:jump-when))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:jump-when))
   (values qvm
           (if (= 1 (dereference-mref qvm (quil:conditional-jump-address instr)))
               (quil:jump-label instr)
               (1+ (pc qvm)))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:jump-unless))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:jump-unless))
   (values qvm
           (if (zerop (dereference-mref qvm (quil:conditional-jump-address instr)))
               (quil:jump-label instr)
@@ -153,10 +158,10 @@ the specified QVM."
           (expected-qubits (1- (integer-length (quil:gate-dimension gate)))))
       (unless (= given-qubits expected-qubits)
         (error 'invalid-instruction-encountered
-                 :instruction instr
-                 :because (format nil "I attempted to apply the ~D-qubit gate to ~D qubit~:P"
-                                  expected-qubits
-                                  given-qubits))))
+               :instruction instr
+               :because (format nil "I attempted to apply the ~D-qubit gate to ~D qubit~:P"
+                                expected-qubits
+                                given-qubits))))
     
     (apply #'apply-gate gate (amplitudes qvm) (apply #'nat-tuple qubits) params)
     (values

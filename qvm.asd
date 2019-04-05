@@ -55,6 +55,7 @@
                (:file "linear-algebra")
                (:file "qam")
                (:file "classical-memory")
+               (:file "classical-memory-mixin")
                (:file "wavefunction")
                (:file "compile-gate")
                (:file "apply-gate")

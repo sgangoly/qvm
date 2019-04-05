@@ -13,13 +13,13 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NEG ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-negate-real))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-negate-real))
   (let ((mref (quil:classical-target instr)))
     (setf (dereference-mref qvm mref)
           (- (dereference-mref qvm mref))))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-negate-integer))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-negate-integer))
   (let ((mref (quil:classical-target instr)))
     (setf (dereference-mref qvm mref)
           (ensure-s64 (- (dereference-mref qvm mref)))))
@@ -27,19 +27,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NOT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-not-bit))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-not-bit))
   (let ((mref (quil:classical-target instr)))
     (setf (dereference-mref qvm mref)
           (- 1 (dereference-mref qvm mref))))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-not-octet))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-not-octet))
   (let ((mref (quil:classical-target instr)))
     (setf (dereference-mref qvm mref)
           (ldb (byte 8 0) (lognot (dereference-mref qvm mref)))))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-not-integer))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-not-integer))
   (let ((mref (quil:classical-target instr)))
     (setf (dereference-mref qvm mref)
           (ldb (byte 64 0) (lognot (dereference-mref qvm mref)))))
@@ -48,7 +48,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; AND ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro define-binary-transition (class compute-fn accessor)
-  `(defmethod transition ((qvm pure-state-qvm) (instr ,class))
+  `(defmethod transition ((qvm classical-memory-mixin) (instr ,class))
      (let ((left/target (quil:classical-left-operand instr))
            (right (quil:classical-right-operand instr)))
        (,compute-fn qvm
@@ -134,44 +134,44 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; EXCHANGE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-exchange))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-exchange))
   (rotatef (dereference-mref qvm (quil:classical-left-operand instr))
            (dereference-mref qvm (quil:classical-right-operand instr)))
   (values qvm (1+ (pc qvm))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; CONVERT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-convert-integer/real))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-convert-integer/real))
   (let ((dst (quil:classical-left-operand instr))
         (src (quil:classical-right-operand instr)))
     (setf (dereference-mref qvm dst) (ensure-s64 (round (dereference-mref qvm src)))))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-convert-integer/bit))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-convert-integer/bit))
   (let ((dst (quil:classical-left-operand instr))
         (src (quil:classical-right-operand instr)))
     (setf (dereference-mref qvm dst) (ensure-s64 (dereference-mref qvm src))))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-convert-real/integer))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-convert-real/integer))
   (let ((dst (quil:classical-left-operand instr))
         (src (quil:classical-right-operand instr)))
     (setf (dereference-mref qvm dst) (coerce (dereference-mref qvm src) 'double-float)))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-convert-real/bit))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-convert-real/bit))
   (let ((dst (quil:classical-left-operand instr))
         (src (quil:classical-right-operand instr)))
     (setf (dereference-mref qvm dst) (coerce (dereference-mref qvm src) 'double-float)))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-convert-bit/integer))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-convert-bit/integer))
   (let ((dst (quil:classical-left-operand instr))
         (src (quil:classical-right-operand instr)))
     (setf (dereference-mref qvm dst) (boolean-bit (not (zerop (dereference-mref qvm src))))))
   (values qvm (1+ (pc qvm))))
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-convert-bit/real))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-convert-bit/real))
   (let ((dst (quil:classical-left-operand instr))
         (src (quil:classical-right-operand instr)))
     (setf (dereference-mref qvm dst) (boolean-bit (not (zerop (dereference-mref qvm src))))))
@@ -245,7 +245,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; LOAD ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-load))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-load))
   (let* ((dst (quil:classical-target instr))
          (src-name (quil:memory-name-region-name (quil:classical-left-operand instr)))
          (src-mv (gethash src-name (classical-memories qvm)))
@@ -256,7 +256,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; STORE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmethod transition ((qvm pure-state-qvm) (instr quil:classical-store))
+(defmethod transition ((qvm classical-memory-mixin) (instr quil:classical-store))
   (let* ((dst-name (quil:memory-name-region-name (quil:classical-target instr)))
          (dst-mv (gethash dst-name (classical-memories qvm)))
          (offset (dereference-mref qvm (quil:classical-left-operand instr)))
@@ -273,7 +273,7 @@
   `(progn
      ,@(loop :for class :in classes
              :collect
-             `(defmethod transition ((qvm pure-state-qvm) (instr ,class))
+             `(defmethod transition ((qvm classical-memory-mixin) (instr ,class))
                 (let ((dst (quil:classical-target instr))
                       (a (quil:classical-left-operand instr))
                       (b (quil:classical-right-operand instr)))
@@ -287,7 +287,7 @@
   `(progn
      ,@(loop :for class :in classes
              :collect
-             `(defmethod transition ((qvm pure-state-qvm) (instr ,class))
+             `(defmethod transition ((qvm classical-memory-mixin) (instr ,class))
                 (let ((dst (quil:classical-target instr))
                       (a (quil:classical-left-operand instr))
                       (b (quil:classical-right-operand instr)))

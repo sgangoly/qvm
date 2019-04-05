@@ -6,7 +6,7 @@
 
 ;;; Execution of quantum programs on QVM instances.
 
-(defmethod run ((qvm pure-state-qvm))
+(defmethod run :before ((qvm pure-state-qvm))
   ;; Compile the program before running it.
   (when *compile-before-running*
     (when *transition-verbose*
@@ -17,8 +17,9 @@
         (format *trace-output* "~&; Compiled in ~D ms.~%"
                 (round (* (/ 1000 internal-time-units-per-second)
                           (- (get-internal-real-time) start))))
-        (finish-output *trace-output*))))
+        (finish-output *trace-output*)))))
 
+(defmethod run ((qvm classical-memory-mixin))
   ;; Actually start the execution.
   (loop :with pc := 0
         :until (or (null pc) (>= pc (loaded-program-length qvm))) :do
