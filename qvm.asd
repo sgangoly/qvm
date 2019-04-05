@@ -66,6 +66,7 @@
                (:file "depolarizing-noise")
                (:file "noisy-qvm")
                (:file "density-qvm")
+               (:file "stabilizer-qvm")
                (:file "execution")
                (:file "path-simulate")
                (:file "misc")))
