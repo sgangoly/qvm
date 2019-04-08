@@ -154,16 +154,21 @@
 (defun random-range (a b)
   (+ a (random (- b a))))
 
-(defun random-clifford-program (length max-clifford-arity max-qubit)
-  (assert (>= max-qubit max-clifford-arity ))
-  (let* ((code (make-array length))
+(defun random-clifford-program (length max-clifford-arity max-qubit &key (measure nil))
+  (assert (>= max-qubit max-clifford-arity))
+  (let* ((code (make-array (+ length (if measure (1+ max-qubit) 0))))
          (program (make-instance 'quil:parsed-program :executable-code code)))
     (dotimes (i length)
-      (let ((arity (random-range 1 max-clifford-arity)))
+      (let ((arity (random-range 1 (1+ max-clifford-arity))))
         (setf (aref code i)
               (apply #'make-clifford-application
                      (cl-quil.clifford:random-clifford arity)
                      (random-qubits arity max-qubit)))))
+    (when measure
+      (dotimes (i (1+ max-qubit))
+        (let ((j (+ length i)))
+          (setf (aref code j)
+                (make-instance 'quil:measure-discard :qubit (quil:qubit i))))))
     ;; hack: cheat so we don't run this transform
     (quil::record-transform 'quil::patch-labels program)
     program))
